@@ -6,12 +6,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"runtime"
 	"runtime/pprof"
 	"strconv"
 	"strings"
 	"time"
+
+	_ "net/http/pprof" // Register pprof handlers
 
 	"github.com/valyala/fasthttp"
 )
@@ -45,8 +48,16 @@ func main() {
 	st, ed, isDebug, err := validateCommandArgs(os.Args[1:])
 	handleError(err, nil)
 
-	// print the start and end time
-	// fmt.Printf("Start time: %s, End time: %s\n", st.Format(time.RFC3339), ed.Format(time.RFC3339))
+	if isDebug {
+		// print the start and end time
+		fmt.Printf("Start time: %s, End time: %s\n", st.Format(time.RFC3339), ed.Format(time.RFC3339))
+
+		// live profiling
+		go func() {
+			err = http.ListenAndServe("localhost:6060", nil)
+			handleError(err, nil)
+		}()
+	}
 
 	// fetch data
 	stream, bodyStreamResp, err := fetch(st, ed, isDebug)
